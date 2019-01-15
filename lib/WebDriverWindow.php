@@ -42,7 +42,7 @@ class WebDriverWindow
      */
     public function getPosition()
     {
-        $position = $this->executor->execute(
+        $position = yield from $this->executor->execute(
             DriverCommand::GET_WINDOW_POSITION,
             [':windowHandle' => 'current']
         );
@@ -61,7 +61,7 @@ class WebDriverWindow
      */
     public function getSize()
     {
-        $size = $this->executor->execute(
+        $size = yield from $this->executor->execute(
             DriverCommand::GET_WINDOW_SIZE,
             [':windowHandle' => 'current']
         );
@@ -79,7 +79,7 @@ class WebDriverWindow
      */
     public function maximize()
     {
-        $this->executor->execute(
+        yield from $this->executor->execute(
             DriverCommand::MAXIMIZE_WINDOW,
             [':windowHandle' => 'current']
         );
@@ -101,7 +101,7 @@ class WebDriverWindow
             'height' => $size->getHeight(),
             ':windowHandle' => 'current',
         ];
-        $this->executor->execute(DriverCommand::SET_WINDOW_SIZE, $params);
+        yield from $this->executor->execute(DriverCommand::SET_WINDOW_SIZE, $params);
 
         return $this;
     }
@@ -120,7 +120,7 @@ class WebDriverWindow
             'y' => $position->getY(),
             ':windowHandle' => 'current',
         ];
-        $this->executor->execute(DriverCommand::SET_WINDOW_POSITION, $params);
+        yield from $this->executor->execute(DriverCommand::SET_WINDOW_POSITION, $params);
 
         return $this;
     }
@@ -132,7 +132,7 @@ class WebDriverWindow
      */
     public function getScreenOrientation()
     {
-        return $this->executor->execute(DriverCommand::GET_SCREEN_ORIENTATION);
+        return yield from $this->executor->execute(DriverCommand::GET_SCREEN_ORIENTATION);
     }
 
     /**
@@ -152,7 +152,7 @@ class WebDriverWindow
             );
         }
 
-        $this->executor->execute(
+        yield from $this->executor->execute(
             DriverCommand::SET_SCREEN_ORIENTATION,
             ['orientation' => $orientation]
         );

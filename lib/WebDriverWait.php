@@ -64,9 +64,9 @@ class WebDriverWait
         while ($end > microtime(true)) {
             try {
                 if ($func_or_ec instanceof WebDriverExpectedCondition) {
-                    $ret_val = call_user_func($func_or_ec->getApply(), $this->driver);
+                    $ret_val = yield from call_user_func($func_or_ec->getApply(), $this->driver);
                 } else {
-                    $ret_val = call_user_func($func_or_ec, $this->driver);
+                    $ret_val = yield from call_user_func($func_or_ec, $this->driver);
                 }
                 if ($ret_val) {
                     return $ret_val;
@@ -74,7 +74,7 @@ class WebDriverWait
             } catch (NoSuchElementException $e) {
                 $last_exception = $e;
             }
-            usleep($this->interval * 1000);
+            yield \Icicle\Coroutine\sleep($this->interval / 1000);
         }
 
         if ($last_exception) {

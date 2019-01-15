@@ -40,7 +40,7 @@ class WebDriverAlert
      */
     public function accept()
     {
-        $this->executor->execute(DriverCommand::ACCEPT_ALERT);
+        yield from $this->executor->execute(DriverCommand::ACCEPT_ALERT);
 
         return $this;
     }
@@ -52,7 +52,7 @@ class WebDriverAlert
      */
     public function dismiss()
     {
-        $this->executor->execute(DriverCommand::DISMISS_ALERT);
+        yield from $this->executor->execute(DriverCommand::DISMISS_ALERT);
 
         return $this;
     }
@@ -64,7 +64,7 @@ class WebDriverAlert
      */
     public function getText()
     {
-        return $this->executor->execute(DriverCommand::GET_ALERT_TEXT);
+        return yield from $this->executor->execute(DriverCommand::GET_ALERT_TEXT);
     }
 
     /**
@@ -75,7 +75,7 @@ class WebDriverAlert
      */
     public function sendKeys($value)
     {
-        $this->executor->execute(
+        yield from $this->executor->execute(
             DriverCommand::SET_ALERT_VALUE,
             ['text' => $value]
         );

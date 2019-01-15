@@ -51,7 +51,7 @@ class WebDriverExpectedCondition
      * An expectation for checking the title of a page.
      *
      * @param string $title The expected title, which must be an exact match.
-     * @return static Condition returns whether current page title equals given string.
+     * @return WebDriverExpectedCondition<bool> Condition returns whether current page title equals given string.
      */
     public static function titleIs($title)
     {
@@ -66,7 +66,7 @@ class WebDriverExpectedCondition
      * An expectation for checking substring of a page Title.
      *
      * @param string $title The expected substring of Title.
-     * @return static Condition returns whether current page title contains given string.
+     * @return WebDriverExpectedCondition<bool> Condition returns whether current page title contains given string.
      */
     public static function titleContains($title)
     {
@@ -81,7 +81,8 @@ class WebDriverExpectedCondition
      * An expectation for checking current page title matches the given regular expression.
      *
      * @param string $titleRegexp The regular expression to test against.
-     * @return static Condition returns whether current page title matches the regular expression.
+     * @return WebDriverExpectedCondition<bool> Condition returns whether current page title matches the regular
+     * expression.
      */
     public static function titleMatches($titleRegexp)
     {
@@ -96,7 +97,7 @@ class WebDriverExpectedCondition
      * An expectation for checking the URL of a page.
      *
      * @param string $url The expected URL, which must be an exact match.
-     * @return static Condition returns whether current URL equals given one.
+     * @return WebDriverExpectedCondition<bool> Condition returns whether current URL equals given one.
      */
     public static function urlIs($url)
     {
@@ -111,7 +112,7 @@ class WebDriverExpectedCondition
      * An expectation for checking substring of the URL of a page.
      *
      * @param string $url The expected substring of the URL
-     * @return static Condition returns whether current URL contains given string.
+     * @return WebDriverExpectedCondition<bool> Condition returns whether current URL contains given string.
      */
     public static function urlContains($url)
     {
@@ -126,7 +127,7 @@ class WebDriverExpectedCondition
      * An expectation for checking current page URL matches the given regular expression.
      *
      * @param string $urlRegexp The regular expression to test against.
-     * @return static Condition returns whether current URL matches the regular expression.
+     * @return WebDriverExpectedCondition<bool> Condition returns whether current URL matches the regular expression.
      */
     public static function urlMatches($urlRegexp)
     {
@@ -142,13 +143,13 @@ class WebDriverExpectedCondition
      * This does not necessarily mean that the element is visible.
      *
      * @param WebDriverBy $by The locator used to find the element.
-     * @return static Condition returns the WebDriverElement which is located.
+     * @return WebDriverExpectedCondition<WebDriverElement> Condition returns the element which is located.
      */
     public static function presenceOfElementLocated(WebDriverBy $by)
     {
         return new static(
             function (WebDriver $driver) use ($by) {
-                return $driver->findElement($by);
+                return yield from $driver->findElement($by);
             }
         );
     }
@@ -157,7 +158,7 @@ class WebDriverExpectedCondition
      * An expectation for checking that there is at least one element present on a web page.
      *
      * @param WebDriverBy $by The locator used to find the element.
-     * @return static Condition return an array of WebDriverElement once they are located.
+     * @return WebDriverExpectedCondition<array> Condition returns  an array of WebDriverElements once they are located.
      */
     public static function presenceOfAllElementsLocatedBy(WebDriverBy $by)
     {
@@ -175,16 +176,17 @@ class WebDriverExpectedCondition
      * Visibility means that the element is not only displayed but also has a height and width that is greater than 0.
      *
      * @param WebDriverBy $by The locator used to find the element.
-     * @return static Condition returns the WebDriverElement which is located and visible.
+     * @return WebDriverExpectedCondition<WebDriverElement> Condition returns the element which is located and visible.
      */
     public static function visibilityOfElementLocated(WebDriverBy $by)
     {
         return new static(
             function (WebDriver $driver) use ($by) {
                 try {
-                    $element = $driver->findElement($by);
-
-                    return $element->isDisplayed() ? $element : null;
+                    /** @var WebDriverElement $element */
+                    $element = yield from $driver->findElement($by);
+                    $is_displayed = yield from $element->isDisplayed();
+                    return  $is_displayed ? $element : null;
                 } catch (StaleElementReferenceException $e) {
                     return null;
                 }
@@ -198,7 +200,7 @@ class WebDriverExpectedCondition
      * Visibility means that the element is not only displayed but also has a height and width that is greater than 0.
      *
      * @param WebDriverBy $by The located used to find the element.
-     * @return static Condition returns the array of WebDriverElement that are located and visible.
+     * @return WebDriverExpectedCondition<WebDriverElement> Condition returns the elements that are located and visible.
      */
     public static function visibilityOfAnyElementLocated(WebDriverBy $by)
     {
@@ -212,7 +214,7 @@ class WebDriverExpectedCondition
                         if ($element->isDisplayed()) {
                             $visibleElements[] = $element;
                         }
-                    } catch (StaleElementReferenceException $e) {
+                    } catch (StateElementReferenceException $e) {
                     }
                 }
 
@@ -226,7 +228,8 @@ class WebDriverExpectedCondition
      * Visibility means that the element is not only displayed but also has a height and width that is greater than 0.
      *
      * @param WebDriverElement $element The element to be checked.
-     * @return static Condition returns the same WebDriverElement once it is visible.
+     * @return WebDriverExpectedCondition<WebDriverElement> Condition returns the same WebDriverElement once it is
+     * visible.
      */
     public static function visibilityOf(WebDriverElement $element)
     {
@@ -245,7 +248,7 @@ class WebDriverExpectedCondition
      * @deprecated Use WebDriverExpectedCondition::elementTextContains() instead
      * @param WebDriverBy $by The locator used to find the element.
      * @param string $text The text to be presented in the element.
-     * @return static Condition returns whether the text is present in the element.
+     * @return WebDriverExpectedCondition<bool> Condition returns whether the text is present in the element.
      */
     public static function textToBePresentInElement(WebDriverBy $by, $text)
     {
@@ -258,7 +261,7 @@ class WebDriverExpectedCondition
      *
      * @param WebDriverBy $by The locator used to find the element.
      * @param string $text The text to be presented in the element.
-     * @return static Condition returns whether the partial text is present in the element.
+     * @return WebDriverExpectedCondition<bool> Condition returns whether the partial text is present in the element.
      */
     public static function elementTextContains(WebDriverBy $by, $text)
     {
@@ -281,14 +284,19 @@ class WebDriverExpectedCondition
      *
      * @param WebDriverBy $by The locator used to find the element.
      * @param string $text The expected text of the element.
-     * @return static Condition returns whether the element has text value equal to given one.
+     * @return WebDriverExpectedCondition<bool> Condition returns whether the element has text value equal to given one.
      */
     public static function elementTextIs(WebDriverBy $by, $text)
     {
         return new static(
             function (WebDriver $driver) use ($by, $text) {
                 try {
-                    return $driver->findElement($by)->getText() == $text;
+
+                    /** @var WebDriverElement $WebDriverElement */
+                    $WebDriverElement = yield from $driver->findElement($by);
+                    $elem_text = yield from $WebDriverElement->getText();
+                    $ret = ($elem_text== $text);
+                    return $ret;
                 } catch (StaleElementReferenceException $e) {
                     return null;
                 }
@@ -301,14 +309,17 @@ class WebDriverExpectedCondition
      *
      * @param WebDriverBy $by The locator used to find the element.
      * @param string $regexp The regular expression to test against.
-     * @return static Condition returns whether the element has text value equal to given one.
+     * @return WebDriverExpectedCondition<bool> Condition returns whether the element has text value equal to given one.
      */
     public static function elementTextMatches(WebDriverBy $by, $regexp)
     {
         return new static(
             function (WebDriver $driver) use ($by, $regexp) {
                 try {
-                    return (bool) preg_match($regexp, $driver->findElement($by)->getText());
+                    /** @var WebDriverElement $WebDriverElement */
+                    $WebDriverElement = yield from $driver->findElement($by);
+                    $elem_text = $WebDriverElement->getText();
+                    return (bool) preg_match($regexp, $elem_text);
                 } catch (StaleElementReferenceException $e) {
                     return null;
                 }
@@ -323,7 +334,7 @@ class WebDriverExpectedCondition
      * @deprecated Use WebDriverExpectedCondition::elementValueContains() instead
      * @param WebDriverBy $by The locator used to find the element.
      * @param string $text The text to be presented in the element value.
-     * @return static Condition returns whether the text is present in value attribute.
+     * @return WebDriverExpectedCondition<bool> Condition returns whether the text is present in value attribute.
      */
     public static function textToBePresentInElementValue(WebDriverBy $by, $text)
     {
@@ -335,7 +346,7 @@ class WebDriverExpectedCondition
      *
      * @param WebDriverBy $by The locator used to find the element.
      * @param string $text The text to be presented in the element value.
-     * @return static Condition returns whether the text is present in value attribute.
+     * @return WebDriverExpectedCondition<bool> Condition returns whether the text is present in value attribute.
      */
     public static function elementValueContains(WebDriverBy $by, $text)
     {
@@ -357,7 +368,8 @@ class WebDriverExpectedCondition
      *
      * @param string $frame_locator The locator used to find the iFrame
      *   expected to be either the id or name value of the i/frame
-     * @return static Condition returns object focused on new frame when frame is found, false otherwise.
+     * @return WebDriverExpectedCondition<WebDriver|bool> Condition returns object focused on new frame when frame is
+     * found, false otherwise.
      */
     public static function frameToBeAvailableAndSwitchToIt($frame_locator)
     {
@@ -376,7 +388,7 @@ class WebDriverExpectedCondition
      * An expectation for checking that an element is either invisible or not present on the DOM.
      *
      * @param WebDriverBy $by The locator used to find the element.
-     * @return static Condition returns whether no visible element located.
+     * @return WebDriverExpectedCondition<bool> Condition returns whether no visible element located.
      */
     public static function invisibilityOfElementLocated(WebDriverBy $by)
     {
@@ -396,9 +408,9 @@ class WebDriverExpectedCondition
     /**
      * An expectation for checking that an element with text is either invisible or not present on the DOM.
      *
-     * @param WebDriverBy $by The locator used to find the element.
+     * @param WebdriverBy $by The locator used to find the element.
      * @param string $text The text of the element.
-     * @return static Condition returns whether the text is found in the element located.
+     * @return WebDriverExpectedCondition<bool> Condition returns whether the text is found in the element located.
      */
     public static function invisibilityOfElementWithText(WebDriverBy $by, $text)
     {
@@ -419,16 +431,16 @@ class WebDriverExpectedCondition
      * An expectation for checking an element is visible and enabled such that you can click it.
      *
      * @param WebDriverBy $by The locator used to find the element
-     * @return static Condition return the WebDriverElement once it is located, visible and clickable.
+     * @return WebDriverExpectedCondition<WebDriverElement> Condition return the WebDriverElement once it is located,
+     * visible and clickable.
      */
     public static function elementToBeClickable(WebDriverBy $by)
     {
-        $visibility_of_element_located =
-            self::visibilityOfElementLocated($by);
+        $visibility_of_element_located = self::visibilityOfElementLocated($by);
 
         return new static(
             function (WebDriver $driver) use ($visibility_of_element_located) {
-                $element = call_user_func(
+                $element = yield from call_user_func(
                     $visibility_of_element_located->getApply(),
                     $driver
                 );
@@ -449,7 +461,7 @@ class WebDriverExpectedCondition
      * Wait until an element is no longer attached to the DOM.
      *
      * @param WebDriverElement $element The element to wait for.
-     * @return static Condition returns whether the element is still attached to the DOM.
+     * @return WebDriverExpectedCondition<bool> Condition returns whether the element is still attached to the DOM.
      */
     public static function stalenessOf(WebDriverElement $element)
     {
@@ -475,7 +487,8 @@ class WebDriverExpectedCondition
      * the condition is checked.
      *
      * @param WebDriverExpectedCondition $condition The condition wrapped.
-     * @return static Condition returns the return value of the getApply() of the given condition.
+     * @return WebDriverExpectedCondition<mixed> Condition returns the return value of the getApply() of the given
+     * condition.
      */
     public static function refreshed(self $condition)
     {
@@ -494,7 +507,7 @@ class WebDriverExpectedCondition
      * An expectation for checking if the given element is selected.
      *
      * @param mixed $element_or_by Either the element or the locator.
-     * @return static Condition returns whether the element is selected.
+     * @return WebDriverExpectedCondition<bool> Condition returns whether the element is selected.
      */
     public static function elementToBeSelected($element_or_by)
     {
@@ -509,7 +522,7 @@ class WebDriverExpectedCondition
      *
      * @param mixed $element_or_by Either the element or the locator.
      * @param bool $selected The required state.
-     * @return static Condition returns whether the element is selected.
+     * @return WebDriverExpectedCondition<bool> Condition returns whether the element is selected.
      */
     public static function elementSelectionStateToBe($element_or_by, $selected)
     {
@@ -539,7 +552,8 @@ class WebDriverExpectedCondition
     /**
      * An expectation for whether an alert() box is present.
      *
-     * @return static Condition returns WebDriverAlert if alert() is present, null otherwise.
+     * @return WebDriverExpectedCondition<?WebDriverAlert> Condition returns WebDriverAlert if alert() is present,
+     * null otherwise.
      */
     public static function alertIsPresent()
     {
@@ -564,7 +578,7 @@ class WebDriverExpectedCondition
      * An expectation checking the number of opened windows.
      *
      * @param int $expectedNumberOfWindows
-     * @return static
+     * @return WebDriverExpectedCondition
      */
     public static function numberOfWindowsToBe($expectedNumberOfWindows)
     {

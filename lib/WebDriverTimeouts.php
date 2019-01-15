@@ -41,7 +41,7 @@ class WebDriverTimeouts
      */
     public function implicitlyWait($seconds)
     {
-        $this->executor->execute(
+        yield from $this->executor->execute(
             DriverCommand::IMPLICITLY_WAIT,
             ['ms' => $seconds * 1000]
         );
@@ -57,7 +57,7 @@ class WebDriverTimeouts
      */
     public function setScriptTimeout($seconds)
     {
-        $this->executor->execute(
+        yield from $this->executor->execute(
             DriverCommand::SET_SCRIPT_TIMEOUT,
             ['ms' => $seconds * 1000]
         );
@@ -73,7 +73,7 @@ class WebDriverTimeouts
      */
     public function pageLoadTimeout($seconds)
     {
-        $this->executor->execute(DriverCommand::SET_TIMEOUT, [
+        yield from $this->executor->execute(DriverCommand::SET_TIMEOUT, [
             'type' => 'page load',
             'ms' => $seconds * 1000,
         ]);

@@ -20,17 +20,13 @@ use Facebook\WebDriver\Exception\WebDriverCurlException;
 use Facebook\WebDriver\Exception\WebDriverException;
 use Facebook\WebDriver\WebDriverCommandExecutor;
 use InvalidArgumentException;
+use KHR\React\Curl\Curl;
 
 /**
  * Command executor talking to the standalone server via HTTP.
  */
 class HttpCommandExecutor implements WebDriverCommandExecutor
 {
-    const DEFAULT_HTTP_HEADERS = [
-        'Content-Type: application/json;charset=UTF-8',
-        'Accept: application/json',
-    ];
-
     /**
      * @see https://github.com/SeleniumHQ/selenium/wiki/JsonWireProtocol#command-reference
      */
@@ -141,11 +137,9 @@ class HttpCommandExecutor implements WebDriverCommandExecutor
      * @var string
      */
     protected $url;
-    /**
-     * @var resource
-     */
-    protected $curl;
 
+    /** @var Curl  */
+    protected $curl;
     /**
      * @param string $url
      * @param string|null $http_proxy
@@ -154,12 +148,19 @@ class HttpCommandExecutor implements WebDriverCommandExecutor
     public function __construct($url, $http_proxy = null, $http_proxy_port = null)
     {
         $this->url = $url;
-        $this->curl = curl_init();
+        $loop = new \Icicle\ReactAdapter\ReactLoop();
+        $Curl = new Curl($loop);
+
+        $this->curl = $Curl;
+
+        $Curl->client->setMaxRequest(3);
+        $Curl->client->setSleep(10000, 0.01, false); // 10000 requests in 0.01 second
 
         if (!empty($http_proxy)) {
-            curl_setopt($this->curl, CURLOPT_PROXY, $http_proxy);
+            $Curl->client->setCurlOption([CURLOPT_PROXY => $http_proxy]);
+
             if ($http_proxy_port !== null) {
-                curl_setopt($this->curl, CURLOPT_PROXYPORT, $http_proxy_port);
+                $Curl->client->setCurlOption([CURLOPT_PROXYPORT => $http_proxy_port]);
             }
         }
 
@@ -168,15 +169,22 @@ class HttpCommandExecutor implements WebDriverCommandExecutor
         if (preg_match("/^(https?:\/\/)(.*):(.*)@(.*?)/U", $url, $matches)) {
             $this->url = $matches[1] . $matches[4];
             $auth_creds = $matches[2] . ':' . $matches[3];
-            curl_setopt($this->curl, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
-            curl_setopt($this->curl, CURLOPT_USERPWD, $auth_creds);
+            $Curl->client->setCurlOption([CURLOPT_HTTPAUTH => CURLAUTH_ANY]);
+            $Curl->client->setCurlOption([CURLOPT_USERPWD => $auth_creds]);
         }
 
-        curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($this->curl, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($this->curl, CURLOPT_HTTPHEADER, static::DEFAULT_HTTP_HEADERS);
+        $Curl->client->setCurlOption([CURLOPT_RETURNTRANSFER => true]);
+        $Curl->client->setCurlOption([
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json;charset=UTF-8',
+                'Accept: application/json',
+            ]
+        ]);
+
         $this->setRequestTimeout(30000);
         $this->setConnectionTimeout(30000);
+
+
     }
 
     /**
@@ -187,13 +195,9 @@ class HttpCommandExecutor implements WebDriverCommandExecutor
      */
     public function setConnectionTimeout($timeout_in_ms)
     {
+
+        $this->curl->client->setCurlOption([CURLOPT_CONNECTTIMEOUT_MS => $timeout_in_ms]);
         // There is a PHP bug in some versions which didn't define the constant.
-        curl_setopt(
-            $this->curl,
-            /* CURLOPT_CONNECTTIMEOUT_MS */
-            156,
-            $timeout_in_ms
-        );
 
         return $this;
     }
@@ -208,12 +212,7 @@ class HttpCommandExecutor implements WebDriverCommandExecutor
     {
         // There is a PHP bug in some versions (at least for PHP 5.3.3) which
         // didn't define the constant.
-        curl_setopt(
-            $this->curl,
-            /* CURLOPT_TIMEOUT_MS */
-            155,
-            $timeout_in_ms
-        );
+        $this->curl->client->setCurlOption([CURLOPT_TIMEOUT_MS => $timeout_in_ms]);
 
         return $this;
     }
@@ -252,21 +251,13 @@ class HttpCommandExecutor implements WebDriverCommandExecutor
             ));
         }
 
-        curl_setopt($this->curl, CURLOPT_URL, $this->url . $url);
+        $Curl = $this->curl;
 
         // https://github.com/facebook/php-webdriver/issues/173
         if ($command->getName() === DriverCommand::NEW_SESSION) {
-            curl_setopt($this->curl, CURLOPT_POST, 1);
+            $Curl->client->setCurlOption([CURLOPT_POST => 1]);
         } else {
-            curl_setopt($this->curl, CURLOPT_CUSTOMREQUEST, $http_method);
-        }
-
-        if (in_array($http_method, ['POST', 'PUT'])) {
-            // Disable sending 'Expect: 100-Continue' header, as it is causing issues with eg. squid proxy
-            // https://tools.ietf.org/html/rfc7231#section-5.1.1
-            curl_setopt($this->curl, CURLOPT_HTTPHEADER, array_merge(static::DEFAULT_HTTP_HEADERS, ['Expect:']));
-        } else {
-            curl_setopt($this->curl, CURLOPT_HTTPHEADER, static::DEFAULT_HTTP_HEADERS);
+            $Curl->client->setCurlOption([CURLOPT_CUSTOMREQUEST => $http_method]);
         }
 
         $encoded_params = null;
@@ -275,22 +266,52 @@ class HttpCommandExecutor implements WebDriverCommandExecutor
             $encoded_params = json_encode($params);
         }
 
-        curl_setopt($this->curl, CURLOPT_POSTFIELDS, $encoded_params);
+        $Curl->client->setCurlOption([CURLOPT_POSTFIELDS => $encoded_params]);
 
-        $raw_results = trim(curl_exec($this->curl));
+        $error_msg = null;
+        $raw_results = null;
 
-        if ($error = curl_error($this->curl)) {
-            $msg = sprintf(
+        $Deferred = new \Icicle\Awaitable\Delayed();
+
+        $cb_ok = function(\MCurl\Result $result) use (&$raw_results, $Deferred) {
+            //echo $result->info['url'], PHP_EOL;
+            $raw_results = $result->getBody();
+            $Deferred->resolve();
+
+        };
+
+        $cb_err = function(\KHR\React\Curl\Exception $e) use (&$error_msg, $http_method, $params, $Deferred){
+
+            $url =  $e->result->info['url'];
+
+            $error_msg = "Curl error thrown for http $http_method to $url";
+            $error_msg = sprintf(
                 'Curl error thrown for http %s to %s',
                 $http_method,
                 $url
             );
             if ($params && is_array($params)) {
-                $msg .= sprintf(' with params: %s', json_encode($params));
+                $error_msg .= sprintf(' with params: %s', json_encode($params));
             }
+            $curl_error = $e->getMessage();
+            $error_msg .= " Error msg was: $curl_error";
 
-            throw new WebDriverCurlException($msg . "\n\n" . $error);
+            $Deferred->reject(new \Exception($error_msg));
+        };
+
+        try {
+            $curl_location = $this->url . $url;
+            $Promise = $Curl->add([CURLOPT_URL => $curl_location])->then($cb_ok, $cb_err);
+
+            $Curl->run();
+
+
+            yield \Icicle\Awaitable\all([$Deferred]);
+        } catch (\Exception $e) {
+            $error_msg = $e->getMessage();
+            throw new WebDriverCurlException($error_msg);
         }
+
 
         $results = json_decode($raw_results, true);
 
@@ -327,10 +348,13 @@ class HttpCommandExecutor implements WebDriverCommandExecutor
         }
 
         $response = new WebDriverResponse($sessionId);
-
-        return $response
-            ->setStatus($status)
+        $response->setStatus($status)
             ->setValue($value);
+
+
+        return $response;
+
+        yield;
     }
 
     /**

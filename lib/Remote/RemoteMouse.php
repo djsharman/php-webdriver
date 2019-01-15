@@ -44,7 +44,7 @@ class RemoteMouse implements WebDriverMouse
     public function click(WebDriverCoordinates $where = null)
     {
         $this->moveIfNeeded($where);
-        $this->executor->execute(DriverCommand::CLICK, [
+        yield from $this->executor->execute(DriverCommand::CLICK, [
             'button' => 0,
         ]);
 
@@ -59,7 +59,7 @@ class RemoteMouse implements WebDriverMouse
     public function contextClick(WebDriverCoordinates $where = null)
     {
         $this->moveIfNeeded($where);
-        $this->executor->execute(DriverCommand::CLICK, [
+        yield from $this->executor->execute(DriverCommand::CLICK, [
             'button' => 2,
         ]);
 
@@ -74,7 +74,7 @@ class RemoteMouse implements WebDriverMouse
     public function doubleClick(WebDriverCoordinates $where = null)
     {
         $this->moveIfNeeded($where);
-        $this->executor->execute(DriverCommand::DOUBLE_CLICK);
+        yield from $this->executor->execute(DriverCommand::DOUBLE_CLICK);
 
         return $this;
     }
@@ -87,7 +87,7 @@ class RemoteMouse implements WebDriverMouse
     public function mouseDown(WebDriverCoordinates $where = null)
     {
         $this->moveIfNeeded($where);
-        $this->executor->execute(DriverCommand::MOUSE_DOWN);
+        yield from $this->executor->execute(DriverCommand::MOUSE_DOWN);
 
         return $this;
     }
@@ -114,7 +114,7 @@ class RemoteMouse implements WebDriverMouse
         if ($y_offset !== null) {
             $params['yoffset'] = $y_offset;
         }
-        $this->executor->execute(DriverCommand::MOVE_TO, $params);
+        yield from $this->executor->execute(DriverCommand::MOVE_TO, $params);
 
         return $this;
     }
@@ -127,7 +127,7 @@ class RemoteMouse implements WebDriverMouse
     public function mouseUp(WebDriverCoordinates $where = null)
     {
         $this->moveIfNeeded($where);
-        $this->executor->execute(DriverCommand::MOUSE_UP);
+        yield from $this->executor->execute(DriverCommand::MOUSE_UP);
 
         return $this;
     }

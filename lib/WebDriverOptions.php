@@ -37,7 +37,7 @@ class WebDriverOptions
     /**
      * Add a specific cookie.
      *
-     * @see Cookie for description of possible cookie properties
+     * @see Facebook\WebDriver\Cookie for description of possible cookie properties
      * @param Cookie|array $cookie Cookie object. May be also created from array for compatibility reasons.
      * @return WebDriverOptions The current instance.
      */
@@ -50,7 +50,7 @@ class WebDriverOptions
             throw new InvalidArgumentException('Cookie must be set from instance of Cookie class or from array.');
         }
 
-        $this->executor->execute(
+        yield from $this->executor->execute(
             DriverCommand::ADD_COOKIE,
             ['cookie' => $cookie->toArray()]
         );
@@ -65,7 +65,7 @@ class WebDriverOptions
      */
     public function deleteAllCookies()
     {
-        $this->executor->execute(DriverCommand::DELETE_ALL_COOKIES);
+        yield from $this->executor->execute(DriverCommand::DELETE_ALL_COOKIES);
 
         return $this;
     }
@@ -78,7 +78,7 @@ class WebDriverOptions
      */
     public function deleteCookieNamed($name)
     {
-        $this->executor->execute(
+        yield from $this->executor->execute(
             DriverCommand::DELETE_COOKIE,
             [':name' => $name]
         );
@@ -111,7 +111,7 @@ class WebDriverOptions
      */
     public function getCookies()
     {
-        $cookieArrays = $this->executor->execute(DriverCommand::GET_ALL_COOKIES);
+        $cookieArrays = yield from $this->executor->execute(DriverCommand::GET_ALL_COOKIES);
         $cookies = [];
 
         foreach ($cookieArrays as $cookieArray) {
@@ -151,7 +151,7 @@ class WebDriverOptions
      */
     public function getLog($log_type)
     {
-        return $this->executor->execute(
+        return yield from $this->executor->execute(
             DriverCommand::GET_LOG,
             ['type' => $log_type]
         );
@@ -165,6 +165,6 @@ class WebDriverOptions
      */
     public function getAvailableLogTypes()
     {
-        return $this->executor->execute(DriverCommand::GET_AVAILABLE_LOG_TYPES);
+        return yield from $this->executor->execute(DriverCommand::GET_AVAILABLE_LOG_TYPES);
     }
 }

@@ -80,14 +80,16 @@ class RemoteWebDriver implements WebDriver, JavaScriptExecutor, WebDriverHasInpu
     /**
      * Construct the RemoteWebDriver by a desired capabilities.
      *
-     * @param string $selenium_server_url The url of the remote Selenium WebDriver server
-     * @param DesiredCapabilities|array $desired_capabilities The desired capabilities
-     * @param int|null $connection_timeout_in_ms Set timeout for the connect phase to remote Selenium WebDriver server
-     * @param int|null $request_timeout_in_ms Set the maximum time of a request to remote Selenium WebDriver server
-     * @param string|null $http_proxy The proxy to tunnel requests to the remote Selenium WebDriver through
-     * @param int|null $http_proxy_port The proxy port to tunnel requests to the remote Selenium WebDriver through
-     * @param DesiredCapabilities $required_capabilities The required capabilities
-     * @return static
+     * @param string                    $selenium_server_url      The url of the remote Selenium WebDriver server
+     * @param DesiredCapabilities|array $desired_capabilities     The desired capabilities
+     * @param int|null                  $connection_timeout_in_ms Set timeout for the connect phase to remote Selenium WebDriver server
+     * @param int|null                  $request_timeout_in_ms    Set the maximum time of a request to remote Selenium WebDriver server
+     * @param string|null               $http_proxy               The proxy to tunnel requests to the remote Selenium WebDriver through
+     * @param int|null                  $http_proxy_port          The proxy  port to tunnel requests to the remote Selenium WebDriver through
+     * @param DesiredCapabilities       $required_capabilities    The required capabilities
+     *
+     * @return RemoteWebDriver
+     * @throws \Facebook\WebDriver\Exception\WebDriverException
      */
     public static function create(
         $selenium_server_url = 'http://localhost:4444/wd/hub',
@@ -123,7 +125,7 @@ class RemoteWebDriver implements WebDriver, JavaScriptExecutor, WebDriverHasInpu
             ['desiredCapabilities' => $desired_capabilities->toArray()]
         );
 
-        $response = $executor->execute($command);
+        $response = yield from $executor->execute($command);
         $returnedCapabilities = new DesiredCapabilities($response->getValue());
 
         $driver = new static($executor, $response->getSessionID(), $returnedCapabilities);
@@ -139,23 +141,11 @@ class RemoteWebDriver implements WebDriver, JavaScriptExecutor, WebDriverHasInpu
      *
      * @param string $selenium_server_url The url of the remote Selenium WebDriver server
      * @param string $session_id The existing session id
-     * @param int|null $connection_timeout_in_ms Set timeout for the connect phase to remote Selenium WebDriver server
-     * @param int|null $request_timeout_in_ms Set the maximum time of a request to remote Selenium WebDriver server
-     * @return static
+     * @return RemoteWebDriver
      */
-    public static function createBySessionID(
-        $session_id,
-        $selenium_server_url = 'http://localhost:4444/wd/hub',
-        $connection_timeout_in_ms = null,
-        $request_timeout_in_ms = null
-    ) {
+    public static function createBySessionID($session_id, $selenium_server_url = 'http://localhost:4444/wd/hub')
+    {
         $executor = new HttpCommandExecutor($selenium_server_url);
-        if ($connection_timeout_in_ms !== null) {
-            $executor->setConnectionTimeout($connection_timeout_in_ms);
-        }
-        if ($request_timeout_in_ms !== null) {
-            $executor->setRequestTimeout($request_timeout_in_ms);
-        }
 
         return new static($executor, $session_id);
     }
@@ -167,7 +157,7 @@ class RemoteWebDriver implements WebDriver, JavaScriptExecutor, WebDriverHasInpu
      */
     public function close()
     {
-        $this->execute(DriverCommand::CLOSE, []);
+        yield from $this->execute(DriverCommand::CLOSE, []);
 
         return $this;
     }
@@ -182,7 +172,7 @@ class RemoteWebDriver implements WebDriver, JavaScriptExecutor, WebDriverHasInpu
     public function findElement(WebDriverBy $by)
     {
         $params = ['using' => $by->getMechanism(), 'value' => $by->getValue()];
-        $raw_element = $this->execute(
+        $raw_element = yield from $this->execute(
             DriverCommand::FIND_ELEMENT,
             $params
         );
@@ -200,7 +190,7 @@ class RemoteWebDriver implements WebDriver, JavaScriptExecutor, WebDriverHasInpu
     public function findElements(WebDriverBy $by)
     {
         $params = ['using' => $by->getMechanism(), 'value' => $by->getValue()];
-        $raw_elements = $this->execute(
+        $raw_elements = yield from $this->execute(
             DriverCommand::FIND_ELEMENTS,
             $params
         );
@@ -223,7 +213,7 @@ class RemoteWebDriver implements WebDriver, JavaScriptExecutor, WebDriverHasInpu
     public function get($url)
     {
         $params = ['url' => (string) $url];
-        $this->execute(DriverCommand::GET, $params);
+        yield from $this->execute(DriverCommand::GET, $params);
 
         return $this;
     }
@@ -235,7 +225,7 @@ class RemoteWebDriver implements WebDriver, JavaScriptExecutor, WebDriverHasInpu
      */
     public function getCurrentURL()
     {
-        return $this->execute(DriverCommand::GET_CURRENT_URL);
+        return yield from $this->execute(DriverCommand::GET_CURRENT_URL);
     }
 
     /**
@@ -245,7 +235,7 @@ class RemoteWebDriver implements WebDriver, JavaScriptExecutor, WebDriverHasInpu
      */
     public function getPageSource()
     {
-        return $this->execute(DriverCommand::GET_PAGE_SOURCE);
+        return yield from $this->execute(DriverCommand::GET_PAGE_SOURCE);
     }
 
     /**
@@ -255,7 +245,7 @@ class RemoteWebDriver implements WebDriver, JavaScriptExecutor, WebDriverHasInpu
      */
     public function getTitle()
     {
-        return $this->execute(DriverCommand::GET_TITLE);
+        return yield from $this->execute(DriverCommand::GET_TITLE);
     }
 
     /**
@@ -265,7 +255,7 @@ class RemoteWebDriver implements WebDriver, JavaScriptExecutor, WebDriverHasInpu
      */
     public function getWindowHandle()
     {
-        return $this->execute(
+        return yield from $this->execute(
             DriverCommand::GET_CURRENT_WINDOW_HANDLE,
             []
         );
@@ -278,7 +268,7 @@ class RemoteWebDriver implements WebDriver, JavaScriptExecutor, WebDriverHasInpu
      */
     public function getWindowHandles()
     {
-        return $this->execute(DriverCommand::GET_WINDOW_HANDLES, []);
+        return yield from $this->execute(DriverCommand::GET_WINDOW_HANDLES, []);
     }
 
     /**
@@ -286,7 +276,7 @@ class RemoteWebDriver implements WebDriver, JavaScriptExecutor, WebDriverHasInpu
      */
     public function quit()
     {
-        $this->execute(DriverCommand::QUIT);
+        yield from $this->execute(DriverCommand::QUIT);
         $this->executor = null;
     }
 
@@ -305,7 +295,7 @@ class RemoteWebDriver implements WebDriver, JavaScriptExecutor, WebDriverHasInpu
             'args' => $this->prepareScriptArguments($arguments),
         ];
 
-        return $this->execute(DriverCommand::EXECUTE_SCRIPT, $params);
+        return yield from $this->execute(DriverCommand::EXECUTE_SCRIPT, $params);
     }
 
     /**
@@ -327,7 +317,7 @@ class RemoteWebDriver implements WebDriver, JavaScriptExecutor, WebDriverHasInpu
             'args' => $this->prepareScriptArguments($arguments),
         ];
 
-        return $this->execute(
+        return yield from $this->execute(
             DriverCommand::EXECUTE_ASYNC_SCRIPT,
             $params
         );
@@ -342,7 +332,7 @@ class RemoteWebDriver implements WebDriver, JavaScriptExecutor, WebDriverHasInpu
     public function takeScreenshot($save_as = null)
     {
         $screenshot = base64_decode(
-            $this->execute(DriverCommand::SCREENSHOT)
+            yield from $this->execute(DriverCommand::SCREENSHOT)
         );
         if ($save_as) {
             file_put_contents($save_as, $screenshot);
@@ -532,7 +522,9 @@ class RemoteWebDriver implements WebDriver, JavaScriptExecutor, WebDriverHasInpu
             []
         );
 
-        return $executor->execute($command)->getValue();
+        $Res = yield from $executor->execute($command);
+
+        return $Res->getValue();
     }
 
     public function execute($command_name, $params = [])
@@ -544,7 +536,7 @@ class RemoteWebDriver implements WebDriver, JavaScriptExecutor, WebDriverHasInpu
         );
 
         if ($this->executor) {
-            $response = $this->executor->execute($command);
+            $response = yield from $this->executor->execute($command);
 
             return $response->getValue();
         }

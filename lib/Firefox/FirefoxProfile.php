@@ -110,7 +110,7 @@ class FirefoxProfile
     }
 
     /**
-     * @param mixed $key
+     * @param $key
      * @return mixed
      */
     public function getPreference($key)
