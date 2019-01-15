@@ -17,7 +17,11 @@
     "ext-curl": "*",
     "ext-zip": "*",
     "ext-mbstring": "*",
-    "ext-json": "*"
+    "ext-json": "*",
+    "psr/log": "^1.0",
+    "khr/react-curl": "^2.0",
+    "icicleio/icicle": "dev-master as 0.9.7",
+    "icicleio/react-adapter": "^0.4.0"
   },
   "require-dev": {
     "phpunit/phpunit": "^5.7",
