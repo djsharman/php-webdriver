@@ -1,0 +1,16 @@
+version: "2"
+
+services:
+  selenium:
+    image: selenium/standalone-chrome-debug
+    ports:
+      - 5901:5900
+      - 4444:4444
+    #depends_on:
+    environment:
+      - SCREEN_HEIGHT=1080
+      - SCREEN_WIDTH=1920
+    volumes:
+        - /etc/timezone:/etc/timezone:ro
+        - /etc/localtime:/etc/localtime:ro
+        - /dev/shm:/dev/shm
