@@ -1,4 +1,66 @@
-# php-webdriver – Selenium WebDriver bindings for PHP
+# Asynchronous php-webdriver using coroutines– Selenium WebDriver bindings for asynchronous PHP
+
+## Description 
+This is a fork of the facebook php-webdriver to allow asynchronous selenium operations from a single threaded PHP test system.
+
+# How it works
+The asynchronous functionality is provided by using coroutines. I use the excellent reactphp and icicle.io in this fork. 
+ 
+## Example use cases
+Using this system you can make multiple execution tasks simultaneously occur. For example you can create multiple user browsers that access your system under test, and make them undertake actions asynchronously. So one user could be uploading a file, another could be logging in, another could be an admin creating users, or another could be a ZMQ listener waiting for a signal to kick off other phases of your test.
+
+## How to get started
+To make things simple I have provided an example of how to use the system along with a Docker setup to get the required selenium instance up and running quickly.
+
+To get started clone the repo then follow the steps below.
+
+### Run the selenium 
+If you already have a selenium instance running locally on port 4444 you can skip this step.
+
+Open a command prompt and run the following
+
+    cd examples/docker/
+    ./runSelenium.sh
+
+### Run an example
+
+    cd examples/src/
+    php LoadBrowsersExample.php
+
+### Seeing the results with VNC
+
+The selenium docker instance provided has a VNC server embedded into it. You can connect to it on port 5901
+
+    vncviewer 127.0.0.1:5901
+
+The password is "secret".
+
+### What you should see
+You should see a set of 10 browsers loading the www.google.co.uk homepage.
+
+If you rerun the example you should see all the browsers getting closed then being recreated.
+
+## Any problems / Questions?
+Please raise a bug report in github and I will look into it.
+
+Alternatively write to me at darren.sharman (at) nemtek.co.uk
+
+## PHP versions tested
+I have tested this with PHP7.0 and php7.2
+If you don't have a compatible php version you can try the additional docker instance I provided that should give you a php7.0 test shell.
+
+        cd examples/docker/
+        ./runDocker.sh
+
+Then start a test shell
+
+    cd examples/docker/
+    ./testShell.sh
+
+You should be able to run the test script from there by following the instructions above.
+
+------------------------------------------
+# The Original description from the facebook php-webdriver follows below.
 
 [![Latest Stable Version](https://img.shields.io/packagist/v/facebook/webdriver.svg?style=flat-square)](https://packagist.org/packages/facebook/webdriver)
 [![Travis Build](https://img.shields.io/travis/facebook/php-webdriver/community.svg?style=flat-square)](https://travis-ci.org/facebook/php-webdriver)

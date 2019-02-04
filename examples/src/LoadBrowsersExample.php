@@ -1,5 +1,10 @@
 <?php
-
+/**
+ * This example demonstrates starting multiple browsers in parallel using coroutines.
+ *
+ * See Readme.md for information on how to run this.
+ *
+ */
 define('SELENIUM_HOST', 'http://localhost:4444/wd/hub');
 require_once dirname(__FILE__).'/../../vendor/autoload.php';
 require_once dirname(__FILE__).'/common/CommonIncludes.php';
